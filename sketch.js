@@ -8,7 +8,7 @@ const bearW = 5;
 const bearH = 6;
 let speed = 0.5;
 let progress = 0;
-const maxProgress = 30;
+const maxProgress = 5;
 let lost = false;
 let win = false;
 let monokumas = [];
@@ -19,13 +19,18 @@ const playerH = 6;
 const playerStartVY = 1.4;
 let player;
 let prevClose = false;
-
+let losesoundplaying = false;
+let winsoundplaying = false;
 function preload() {
   walkingbear = loadImage('assets/walkingbear.gif');
   walkingplayer = loadImage('assets/playerwalk.gif');
   progressbear = loadImage('assets/progressbar.png');
   losegif = loadImage('assets/upupup-evil.gif');
   wingif = loadImage('assets/monokuma_win.gif');
+  jumpsound = loadSound('assets/jump.mp3');
+  upupupusound = loadSound('assets/upupupu.mp3');
+  dadasound = loadSound('assets/dada.mp3');
+  startsound = loadSound('assets/start.mp3');
 }
 
 class Monokuma {
@@ -88,6 +93,7 @@ function setup() {
   createCanvas(150, 50);
   // numBears = round(random(1, 4));
   // determine the second bear;
+  startsound.play();
   startGame();
 }
 
@@ -100,6 +106,8 @@ function startGame() {
   counter = 0;
   progress = 0;
   speed = 0.5;
+  losesoundplaying = false;
+  winsoundplaying = false;
   if ((random(0, 1) > 0.9) && (!prevClose)) {
     nextbear = int(random(10, 15));
     prevClose = true;
@@ -113,16 +121,15 @@ function startGame() {
 
 function keyPressed() {
   if (keyCode == ENTER) {
-    progress += 1;
-    speed += 0.02;
-    player.jump();
-    if (lost || win) {
-      startGame();
-    }
+      progress += 1;
+      speed += 0.02;
+      jumpsound.play();
+      player.jump();
+      if  (lost || win) {
+        startsound.play();
+        startGame();
+      }
   }
-
-  // return false;
-
 }
 
 function draw() {
@@ -142,14 +149,16 @@ function draw() {
       counter = 0;
       if (progress == maxProgress) {
         win = true;
+        // started = false;
       }
       if ((random(0, 1) > 0.9) && (!prevClose)) {
         nextbear = int(random(10, 20));
         prevClose = true;
       } else {
-        nextbear = int(random(50, 100));
+        nextbear = int(random(55, 100));
         prevClose = false;
       }
+      // kumaappearsound.play();
     }
   
     for (let kuma of monokumas) {
@@ -163,14 +172,23 @@ function draw() {
   
       if (player.hits(kuma)) {
         lost = true;
+        // started = false;
       }
     }
   
     player.show();
     player.move();
   } else if (lost) {
+    if (!losesoundplaying) {
+      upupupusound.play();
+    }
+    losesoundplaying = true;
     image(losegif, 35, 2.5, 80, 45);
   } else if (win) {
+    if (!winsoundplaying) {
+      dadasound.play();
+    }
+    winsoundplaying = true;
     image(wingif, 35, 2.5, 80, 45);
   }
  
