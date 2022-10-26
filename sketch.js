@@ -1,4 +1,3 @@
-
 let wingif;
 let losegif;
 let walkingbear;
