@@ -150,15 +150,10 @@ function draw() {
     fill(255);
     rect(120, 3, 20, 0.5);
     pop();
-    image(progressbear, 120 + 20 * (progress/maxProgress), 1, 2, 2);
   
     if (counter == nextbear) {
       monokumas.push(new Monokuma());
       counter = 0;
-      if (progress == maxProgress) {
-        win = true;
-        // started = false;
-      }
       if ((random(0, 1) > 0.9) && (!prevClose)) {
         nextbear = int(random(10, 20));
         prevClose = true;
@@ -180,29 +175,36 @@ function draw() {
   
       if (player.hits(kuma)) {
         lost = true;
-        // started = false;
+        break;
       }
 
       if (!kuma.passed && player.passes(kuma)) {
         progress += 1;
+        if (progress == maxProgress) {
+          win = true;
+          // winAnimation();
+          break;
+        }
         speed += 0.02;
       }
     }
-  
+    image(progressbear, 120 + 20 * (progress/maxProgress), 1, 2, 2);
     player.show();
     player.move();
-  } else if (lost) {
+  } 
+  
+  else if (lost) {
     if (!losesoundplaying) {
       upupupusound.play();
     }
     losesoundplaying = true;
     image(losegif, 35, 2.5, 80, 45);
   } else if (win) {
+    // winAnimation();
     if (!winsoundplaying) {
-      dadasound.play();
+        dadasound.play();
     }
     winsoundplaying = true;
     image(wingif, 35, 2.5, 80, 45);
   }
- 
 }
