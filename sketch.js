@@ -40,6 +40,7 @@ class Monokuma {
     this.h = bearH;
     this.x = -bearH;
     this.y = height - this.h;
+    this.passed = false;
   }
 
   move() {
@@ -72,6 +73,15 @@ class Player {
   hits(kuma) {
     // kuma top right cornor
     if ((this.x < kuma.x + kuma.w) && (this.x + this.w > kuma.x) && (this.y < kuma.y + kuma.h) && (this.y + this.h > kuma.y)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  passes(kuma) {
+    if ((this.x + this.w) < (kuma.x)) {
+      kuma.passed = true;
       return true;
     } else {
       return false;
@@ -121,8 +131,6 @@ function startGame() {
 
 function keyPressed() {
   if (keyCode == ENTER) {
-      progress += 1;
-      speed += 0.02;
       jumpsound.play();
       player.jump();
       if  (lost || win) {
@@ -173,6 +181,11 @@ function draw() {
       if (player.hits(kuma)) {
         lost = true;
         // started = false;
+      }
+
+      if (!kuma.passed && player.passes(kuma)) {
+        progress += 1;
+        speed += 0.02;
       }
     }
   
