@@ -3,7 +3,11 @@ let losegif;
 let walkingbear;
 let walkingplayer;
 let progressbear;
-
+let handsfree;
+let eyeBlinkHistory = [];
+const historyLen = 320;
+let runningAvg = 0; 
+var blinkActivation = 0; 
 const bearW = 5;
 const bearH = 6;
 let speed = 0.5;
@@ -32,6 +36,9 @@ function preload() {
   dadasound = loadSound('assets/dada.mp3');
   startsound = loadSound('assets/start.mp3');
 }
+
+
+//https://editor.p5js.org/golan/sketches/d-JfFcGws
 
 class Monokuma {
 
@@ -101,8 +108,14 @@ class Player {
 
 function setup() {
   createCanvas(150, 50);
-  // numBears = round(random(1, 4));
-  // determine the second bear;
+  // Configure handsfree.js to track hands, body, and/or face.
+  handsfree = new Handsfree({
+    showDebug: false,  /* shows or hides the camera */
+    hands: false,      /* acquire hand data? */
+    pose: false,       /* acquire body data? */
+    facemesh: true     /* acquire face data? */
+  });
+  handsfree.start();
   startsound.play();
   startGame();
 }
@@ -129,18 +142,100 @@ function startGame() {
   loop();
 }
 
-function keyPressed() {
-  if (keyCode == ENTER) {
+function virtualKeyPress() {
+  // if (keyCode == ENTER) {
       jumpsound.play();
       player.jump();
       if  (lost || win) {
         startsound.play();
         startGame();
       }
+  // }
+}
+
+
+//------------------------------------------
+function detectBlink(){
+  
+  if (handsfree.data.facemesh) {
+    if (handsfree.data.facemesh.multiFaceLandmarks) {
+      var faceLandmarks = handsfree.data.facemesh.multiFaceLandmarks;   
+      var nFaces = faceLandmarks.length;
+      if (nFaces > 0){
+        var whichFace = 0;
+        
+        //----------------------
+        // Vertices for the eyes
+        var eyes = [[33,161,160,159,158,157,173,  133,155,154,153,145,144,163,7],
+                    [362,384,385,386,387,388,466,263,  249,390,373,374,380,381,382]];
+
+        //----------------------
+        // Compute the centroid of the eye vertices.
+        // This is purely for display purposes.
+        var eyeAvgX = 0; 
+        var eyeAvgY = 0;
+        var count = 0; 
+        for (var e=0; e<2; e++){
+          for (var j=0; j<(eyes[e].length); j++){
+            var px = faceLandmarks[whichFace][eyes[e][j]].x;
+            var py = faceLandmarks[whichFace][eyes[e][j]].y;
+            eyeAvgX += map(px, 0, 1, width, 0);
+            eyeAvgY += map(py, 0, 1, 0, height);
+            count++;
+          }
+        }
+        eyeAvgX /= count;
+        eyeAvgY /= count;
+        
+        //----------------------
+        // Measure the openness of the eyes. Your mileage may vary. 
+        var eyeBlinkMeasurementPairs = [[159,154],[158,145],[385,374],[386,373]];
+        var measurement = 0; 
+        for (var i=0; i<eyeBlinkMeasurementPairs.length; i++){
+          var pa = faceLandmarks[whichFace][eyeBlinkMeasurementPairs[i][0]];
+          var pb = faceLandmarks[whichFace][eyeBlinkMeasurementPairs[i][1]];
+          measurement += dist(pa.x, pa.y, pb.x, pb.y); 
+        }
+        // Add the data to the history; 
+        for (var i=0; i<(historyLen-1); i++){
+          eyeBlinkHistory[i] = eyeBlinkHistory[i+1];
+        }
+        eyeBlinkHistory[historyLen-1] = measurement;
+        
+        
+        //----------------------
+        // Compute stats and Detect a blink!
+        runningAvg = 0.95*runningAvg + 0.05*measurement;
+        var stdv = 0; 
+        for (var i=0; i<historyLen; i++){
+          stdv += sq(eyeBlinkHistory[i] - runningAvg);
+        }
+        stdv = sqrt(stdv/historyLen);
+    
+        // var blink = false;
+        blinkActivation = 0.9*blinkActivation; // reduce activation
+        var threshStdv = 1.0; // how many stdv's to detect a blink
+        var threshVal = runningAvg-stdv*threshStdv;
+        if ((eyeBlinkHistory[historyLen-1] < threshVal) && 
+            (eyeBlinkHistory[historyLen-2] >= threshVal)){
+          // blink = true;
+          blinkActivation = 1.0;
+          return true;
+        }
+
+        return false;  
+      }
+    }
   }
 }
 
 function draw() {
+
+  if (detectBlink()) {
+    console.log("blinked");
+    virtualKeyPress();
+
+  }
 
   if (!win && !lost) {
     background(0);
@@ -175,6 +270,8 @@ function draw() {
   
       if (player.hits(kuma)) {
         lost = true;
+        // loseAnimation();
+        // started = false;
         break;
       }
 
